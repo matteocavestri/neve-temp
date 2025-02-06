@@ -1,0 +1,57 @@
+.TH NEVE-USERDEL 1 "January 2025" "Version 0.0.1" "Neve Project Manual"
+.SH NAME
+neve-userdel \- Remove users and associated ZFS datasets
+.SH SYNOPSIS
+.B neve-userdel
+.RI [ USERNAME ] [ OPTION ]
+.SH DESCRIPTION
+The
+.B neve-userdel
+script removes a user from a Void Linux system and optionally deletes their ZFS dataset. It ensures the dataset is unmounted before deletion and supports dry-run and automated confirmation modes.
+
+The script provides the following modes:
+.TP
+.BR –d ", " ––dry-run
+Simulate the removal process without making any changes. Outputs the actions that would be performed.
+.TP
+.BR –y ", " ––yes
+Skip confirmation prompts and execute the commands directly.
+.TP
+.BR –h ", " ––help
+Display the help message and exit.
+.SH OPTIONS
+The following options are supported:
+.TP
+.B –d, ––dry-run
+Simulate the removal process and list the actions that would be taken without performing them.
+.TP
+.B –y, ––yes
+Skip confirmation prompts and remove the user directly.
+.TP
+.B –h, ––help
+Display usage information and exit.
+.SH EXAMPLES
+To remove a user and their associated ZFS dataset with confirmation:
+.EX
+neve-userdel username
+.EE
+
+To simulate the removal of a user and their dataset:
+.EX
+neve-userdel username -d
+.EE
+
+To remove a user and their dataset without confirmation prompts:
+.EX
+neve-userdel username -y
+.EE
+
+To display the help message:
+.EX
+neve-userdel -h
+.EE
+.SH AUTHOR
+Matteo Cavestri
+.SH LICENSE
+GNU GPL v2 or later.
+

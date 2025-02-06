@@ -1,0 +1,147 @@
+#!/bin/sh
+#===============================================================================
+# neve-useradd (version 0.0.1)
+#-------------------------------------------------------------------------------
+# Author: Matteo Cavestri
+# Organization: FMPT Org
+# Project: Neve Project
+# License: GNU GPL v2 or later
+#
+# Description:
+#   This script adds a new user to a Void Linux system with optional ZFS integration.
+#   - Default mode: Creates a user with ZFS dataset and optional group memberships.
+#   - Wheel mode (--wheel): Adds the user to the wheel group for administrative privileges.
+#   - Virtualization mode (--virtualisation): Adds the user to the libvirt group for virtualization access.
+#   - Automatic yes mode (--yes): Skips confirmation prompts for a fully automated setup.
+#   - Help mode (--help): Displays usage information.
+#
+# Dependencies:
+#   - zfs: for managing ZFS datasets.
+#   - useradd: for creating users.
+#   - usermod: for managing user groups.
+#===============================================================================
+
+set -e
+
+show_help() {
+  cat <<EOF
+Usage: neve-useradd USERNAME [OPTIONS]
+
+Options:
+  -w, --wheel           Add the user to the wheel group for administrative privileges
+  -v, --virtualisation  Add the user to the libvirt group for virtualization access
+  -y, --yes             Skip confirmation prompt and create the user directly
+  -h, --help            Display this help message
+EOF
+  exit 0
+}
+
+error() {
+  echo "Error: $1" >&2
+  exit 1
+}
+
+# Variables for flags
+ADD_TO_WHEEL=false
+ADD_TO_LIBVIRT=false
+SKIP_CONFIRMATION=false
+
+# Parse arguments
+USERNAME=""
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+  -w | --wheel)
+    ADD_TO_WHEEL=true
+    ;;
+  -v | --virtualisation)
+    ADD_TO_LIBVIRT=true
+    ;;
+  -y | --yes)
+    SKIP_CONFIRMATION=true
+    ;;
+  -h | --help)
+    show_help
+    ;;
+  *)
+    if [ -z "$USERNAME" ]; then
+      USERNAME="$1"
+    else
+      error "Unexpected argument: $1"
+    fi
+    ;;
+  esac
+  shift
+done
+
+# Ensure a username is provided
+if [ -z "$USERNAME" ]; then
+  error "You must specify a username. Use -h for help."
+fi
+
+# Check for root privileges
+if [ "$(id -u)" -ne 0 ]; then
+  error "This script must be run as root."
+fi
+
+# Confirm user creation if not skipped
+if [ "$SKIP_CONFIRMATION" = false ]; then
+  echo "The following user will be created:"
+  echo "  Username: $USERNAME"
+  [ "$ADD_TO_WHEEL" = true ] && echo "  Groups: wheel"
+  [ "$ADD_TO_LIBVIRT" = true ] && echo "  Groups: libvirt"
+  echo
+  printf "Do you want to continue? [y/N]: "
+  read -r CONFIRMATION
+  case "$CONFIRMATION" in
+  [yY][eE][sS] | [yY]) ;; # Continue
+  *)
+    echo "Aborting."
+    exit 0
+    ;;
+  esac
+fi
+
+# Create ZFS dataset
+ZFS_DATASET="zroot/home/$USERNAME"
+if ! zfs list "$ZFS_DATASET" >/dev/null 2>&1; then
+  echo "Creating ZFS dataset for user: $USERNAME"
+  zfs create -o mountpoint=/home/"$USERNAME" "$ZFS_DATASET"
+else
+  echo "ZFS dataset already exists: $ZFS_DATASET"
+fi
+
+# Mount ZFS dataset
+if ! mountpoint -q /home/"$USERNAME"; then
+  echo "Mounting ZFS dataset: $ZFS_DATASET"
+  zfs mount "$ZFS_DATASET"
+else
+  echo "ZFS dataset already mounted: $ZFS_DATASET"
+fi
+
+# Create the user
+if id "$USERNAME" >/dev/null 2>&1; then
+  error "User $USERNAME already exists."
+else
+  echo "Creating user: $USERNAME"
+  useradd -m -d /home/"$USERNAME" "$USERNAME"
+fi
+
+# Add user to groups if specified
+if [ "$ADD_TO_WHEEL" = true ]; then
+  echo "Adding user $USERNAME to group: wheel"
+  usermod -aG wheel "$USERNAME"
+fi
+
+if [ "$ADD_TO_LIBVIRT" = true ]; then
+  echo "Adding user $USERNAME to group: libvirt"
+  usermod -aG libvirt "$USERNAME"
+fi
+
+# Set password to the user
+echo "Setting password for user: $USERNAME"
+passwd "$USERNAME"
+
+# Final output
+echo "User $USERNAME created successfully."
+[ "$ADD_TO_WHEEL" = true ] && echo "  Added to group: wheel"
+[ "$ADD_TO_LIBVIRT" = true ] && echo "  Added to group: libvirt"

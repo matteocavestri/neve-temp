@@ -1,0 +1,138 @@
+#!/bin/sh
+#===============================================================================
+# neve-userdel (version 0.0.1)
+#-------------------------------------------------------------------------------
+# Author: Matteo Cavestri
+# Organization: FMPT Org
+# Project: Neve Project
+# License: GNU GPL v2 or later
+#
+# Description:
+#   This script removes a user from a Void Linux system and deletes their ZFS dataset.
+#   - Default mode: Deletes the user and their ZFS dataset (if it exists).
+#   - Dry-run mode (--dry-run): Displays the actions that would be performed without executing them.
+#   - Automatic yes mode (--yes): Skips confirmation prompts for a fully automated setup.
+#   - Help mode (--help): Displays usage information.
+#
+# Dependencies:
+#   - zfs: for managing ZFS datasets.
+#   - userdel: for removing users.
+#===============================================================================
+
+set -e
+
+show_help() {
+  cat <<EOF
+Usage: neve-userdel USERNAME [OPTIONS]
+
+Options:
+  -d, --dry-run         Display actions without performing them
+  -y, --yes             Skip confirmation prompt and delete the user directly
+  -h, --help            Display this help message
+EOF
+  exit 0
+}
+
+error() {
+  echo "Error: $1" >&2
+  exit 1
+}
+
+# Variables for flags
+DRY_RUN=false
+SKIP_CONFIRMATION=false
+
+# Parse arguments
+USERNAME=""
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+  -d | --dry-run)
+    DRY_RUN=true
+    ;;
+  -y | --yes)
+    SKIP_CONFIRMATION=true
+    ;;
+  -h | --help)
+    show_help
+    ;;
+  *)
+    if [ -z "$USERNAME" ]; then
+      USERNAME="$1"
+    else
+      error "Unexpected argument: $1"
+    fi
+    ;;
+  esac
+  shift
+done
+
+# Ensure a username is provided
+if [ -z "$USERNAME" ]; then
+  error "You must specify a username. Use -h for help."
+fi
+
+# Check for root privileges
+if [ "$(id -u)" -ne 0 ]; then
+  error "This script must be run as root."
+fi
+
+# Define the ZFS dataset path
+ZFS_DATASET="zroot/home/$USERNAME"
+
+# Confirm user deletion if not skipped
+if [ "$SKIP_CONFIRMATION" = false ]; then
+  echo "The following user will be removed along with their resources:"
+  echo "  Username: $USERNAME"
+  echo "  ZFS Dataset: $ZFS_DATASET"
+  printf "Do you want to continue? [y/N]: "
+  read -r CONFIRMATION
+  case "$CONFIRMATION" in
+  [yY][eE][sS] | [yY]) ;; # Continue
+  *)
+    echo "Aborting."
+    exit 0
+    ;;
+  esac
+fi
+
+# Dry-run mode output
+if [ "$DRY_RUN" = true ]; then
+  echo "Dry-run mode: No actions will be performed."
+  echo "The following actions would be taken:"
+  echo "  - Check if user $USERNAME exists"
+  echo "  - Check for ZFS dataset $ZFS_DATASET"
+  echo "  - Unmount and destroy ZFS dataset if it exists"
+  echo "  - Remove user $USERNAME from the system"
+  exit 0
+fi
+
+# Check if the user exists
+if ! id "$USERNAME" >/dev/null 2>&1; then
+  error "User $USERNAME does not exist."
+fi
+
+# Handle ZFS dataset
+if zfs list "$ZFS_DATASET" >/dev/null 2>&1; then
+  echo "ZFS dataset found: $ZFS_DATASET"
+
+  # Unmount the dataset if mounted
+  if mountpoint -q /home/"$USERNAME"; then
+    echo "Unmounting ZFS dataset: $ZFS_DATASET"
+    zfs unmount "$ZFS_DATASET"
+  else
+    echo "ZFS dataset is not mounted: $ZFS_DATASET"
+  fi
+
+  # Destroy the dataset
+  echo "Destroying ZFS dataset: $ZFS_DATASET"
+  zfs destroy "$ZFS_DATASET"
+else
+  echo "No ZFS dataset found for user: $USERNAME"
+fi
+
+# Remove the user
+echo "Removing user: $USERNAME"
+userdel -r "$USERNAME"
+
+# Final output
+echo "User $USERNAME and associated resources have been removed successfully."

@@ -1,0 +1,57 @@
+.TH NEVE-USERADD 1 "January 2025" "Version 0.0.1" "Neve Project Manual"
+.SH NAME
+neve-useradd \- Create users with ZFS integration and group configurations
+.SH SYNOPSIS
+.B neve-useradd
+.RI [ USERNAME ] [ OPTION ]
+.SH DESCRIPTION
+The
+.B neve-useradd
+script adds a new user to a Void Linux system and optionally creates a ZFS dataset for the user’s home directory. It supports adding the user to specific groups like ‘wheel’ and ‘libvirt’, allowing administrative or virtualization-related privileges.
+
+The script provides the following modes:
+.TP
+.BR \-w ", " --wheel
+Add the user to the ‘wheel’ group for administrative privileges.
+.TP
+.BR \-v ", " --virtualisation
+Add the user to the ‘libvirt’ group for virtualization access.
+.TP
+.BR \-y ", " --yes
+Skip confirmation prompts and execute the commands directly.
+.TP
+.BR \-h ", " --help
+Display the help message and exit.
+.SH OPTIONS
+The following options are supported:
+.TP
+.B \-w, --wheel
+Add the user to the ‘wheel’ group for administrative privileges.
+.TP
+.B \-v, --virtualisation
+Add the user to the ‘libvirt’ group for virtualization access.
+.TP
+.B \-y, --yes
+Skip confirmation prompts and execute the commands directly.
+.TP
+.B \-h, --help
+Display usage information and exit.
+.SH EXAMPLES
+To create a user with a ZFS home directory and administrative privileges:
+.EX
+neve-useradd username -w
+.EE
+
+To create a user with access to virtualization and skip confirmation prompts:
+.EX
+neve-useradd username -v -y
+.EE
+
+To display the help message:
+.EX
+neve-useradd -h
+.EE
+.SH AUTHOR
+Matteo Cavestri
+.SH LICENSE
+GNU GPL v2 or later.

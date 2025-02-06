@@ -1,0 +1,62 @@
+.TH NEVE-SERVICES-SETUP 1 "January 2025" "Version 0.0.1" "Neve Project Manual"
+.SH NAME
+neve-services-setup \- Manage and configure runit services
+.SH SYNOPSIS
+.B neve-services-setup
+.RI [ OPTION ]
+.SH DESCRIPTION
+The
+.B neve-services-setup
+script provides an interface to manage and configure services using the runit init system.
+
+It supports the following modes:
+.TP
+.BR \-d ", " --default
+Apply the default service setup.
+.TP
+.BR \-g ", " --gui-desktop
+Enable GUI desktop-related services.
+.TP
+.BR \-v ", " --virtualisation
+Enable virtualisation-related services.
+.TP
+.BR \-y ", " --yes
+Skip prompts (works with --default, --gui-desktop, --virtualisation).
+.TP
+.BR \-h ", " --help
+Show the help message and exit.
+
+.SH OPTIONS
+The following options are supported:
+
+.TP
+.B \-d, --default
+Apply the default service setup.
+.TP
+.B \-g, --gui-desktop
+Enable GUI desktop-related services.
+.TP
+.B \-v, --virtualisation
+Enable virtualisation-related services.
+.TP
+.B \-y, --yes
+Skip prompts in applicable modes.
+.TP
+.B \-h, --help
+Display usage information.
+
+.SH EXAMPLES
+To apply the default services:
+.EX
+neve-services-setup -d
+.EE
+
+To enable both GUI and virtualisation services without confirmation:
+.EX
+neve-services-setup -g -v -y
+.EE
+
+.SH AUTHOR
+Matteo Cavestri
+.SH LICENSE
+GNU GPL v2 or later.
